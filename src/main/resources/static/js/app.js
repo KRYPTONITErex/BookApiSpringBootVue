@@ -1,210 +1,490 @@
-const { createApp } = Vue;
+const { createApp, ref, reactive, computed, watch, onMounted } = Vue;
 
 createApp({
-    data() {
-        return {
-            books: [],
-            newBook: {
-                title: '',
-                author: ''
-            },
-            activeTab: 'all',
-            searchId: '',
-            searchTitle: '',
-            searchAuthor: '',
-            searchResults: [],
-            searchPerformed: false,
-            showEditModal: false,
-            editingBook: {
-                id: null,
-                title: '',
-                author: ''
-            },
-            editByTitle: false,
-            originalTitle: ''
-        }
-    },
-    mounted() {
-        this.fetchBooks();
-    },
-    methods: {
-        setActiveTab(tab) {
-            this.activeTab = tab;
-            if (tab === 'all') {
-                this.fetchBooks();
+    setup() {
+        // Reactive state
+        const books = ref([]);
+        const newBook = reactive({
+            title: '',
+            author: ''
+        });
+        const activeTab = ref('all');
+        const searchId = ref('');
+        const searchTitle = ref('');
+        const searchAuthor = ref('');
+        const searchResults = ref([]);
+        const searchPerformed = ref(false);
+        const showEditModal = ref(false);
+        const editingBook = reactive({
+            id: null,
+            title: '',
+            author: ''
+        });
+        const editByTitle = ref(false);
+        const originalTitle = ref('');
+        const loading = ref(false);
+        const toasts = ref([]);
+        const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
+        const selectedAuthor = ref('');
+        const filteredBooks = ref([]);
+        const showScrollTop = ref(false);
+        const sortBy = ref('title');
+        
+        // Computed properties
+        const hasBooks = computed(() => books.value.length > 0);
+        const hasSearchResults = computed(() => searchResults.value.length > 0);
+        
+        // Get unique authors for tag cloud
+        const uniqueAuthors = computed(() => {
+            const authors = books.value.map(book => book.author);
+            return [...new Set(authors)].sort();
+        });
+        
+        // Get displayed books based on filters and sorting
+        const displayedBooks = computed(() => {
+            let result = books.value;
+            
+            // Apply author filter if selected
+            if (selectedAuthor.value) {
+                result = result.filter(book => book.author === selectedAuthor.value);
             }
-        },
-        fetchBooks() {
-            BookAPI.getAllBooks()
-                .then(response => {
-                    this.books = response.data;
-                })
-                .catch(error => {
-                    console.error('Error fetching books:', error);
-                });
-        },
-        addBook() {
-            if (!this.newBook.title || !this.newBook.author) {
-                alert('Please fill in all fields');
+            
+            // Apply sorting
+            result = [...result].sort((a, b) => {
+                if (sortBy.value === 'title') {
+                    return a.title.localeCompare(b.title);
+                } else if (sortBy.value === 'author') {
+                    return a.author.localeCompare(b.author);
+                } else if (sortBy.value === 'id') {
+                    return a.id - b.id;
+                }
+                return 0;
+            });
+            
+            return result;
+        });
+        
+        // Watch for changes
+        watch(activeTab, (newTab) => {
+            if (newTab === 'all') {
+                fetchBooks();
+            }
+        });
+        
+        // Methods
+        const setActiveTab = (tab) => {
+            activeTab.value = tab;
+        };
+        
+        const fetchBooks = async () => {
+            loading.value = true;
+            try {
+                const response = await BookAPI.getAllBooks();
+                books.value = response.data;
+            } catch (error) {
+                showToast('error', `Failed to load books: ${error.message}`);
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        // Filter books by author
+        const filterByAuthor = (author) => {
+            selectedAuthor.value = author;
+            // If we're not on the all books tab, switch to it
+            if (activeTab.value !== 'all') {
+                setActiveTab('all');
+            }
+        };
+        
+        // Clear author filter
+        const clearAuthorFilter = () => {
+            selectedAuthor.value = '';
+        };
+        
+        const addBook = async () => {
+            if (!newBook.title || !newBook.author) {
+                showToast('error', 'Please fill in all fields');
                 return;
             }
             
-            BookAPI.addBook(this.newBook)
-                .then(response => {
-                    this.books.push(response.data);
-                    this.newBook = { title: '', author: '' };
-                    alert('Book added successfully!');
-                    this.setActiveTab('all');
-                })
-                .catch(error => {
-                    console.error('Error adding book:', error);
-                    alert('Error adding book. Please try again.');
-                });
-        },
-        deleteBook(id) {
-            if (confirm('Are you sure you want to delete this book?')) {
-                BookAPI.deleteBook(id)
-                    .then(response => {
-                        this.books = this.books.filter(book => book.id !== id);
-                        this.searchResults = this.searchResults.filter(book => book.id !== id);
-                        alert('Book deleted successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error deleting book:', error);
-                        alert('Error deleting book. Please try again.');
-                    });
+            loading.value = true;
+            try {
+                const response = await BookAPI.addBook(newBook);
+                books.value.push(response.data);
+                newBook.title = '';
+                newBook.author = '';
+                showToast('success', 'Book added successfully!');
+                setActiveTab('all');
+            } catch (error) {
+                showToast('error', `Error adding book: ${error.message}`);
+            } finally {
+                loading.value = false;
             }
-        },
-        deleteBookByTitle(title) {
-            if (confirm(`Are you sure you want to delete the book titled "${title}"?`)) {
-                BookAPI.deleteBookByTitle(title)
-                    .then(response => {
-                        this.books = this.books.filter(book => book.title !== title);
-                        this.searchResults = this.searchResults.filter(book => book.title !== title);
-                        alert('Book deleted successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error deleting book:', error);
-                        alert('Error deleting book. Please try again.');
-                    });
-            }
-        },
-        searchById() {
-            if (!this.searchId) {
-                alert('Please enter an ID to search');
+        };
+        
+        const deleteBook = async (id) => {
+            if (!confirm('Are you sure you want to delete this book?')) {
                 return;
             }
             
-            BookAPI.getBookById(this.searchId)
-                .then(response => {
-                    this.searchResults = response.data ? [response.data] : [];
-                    this.searchPerformed = true;
-                })
-                .catch(error => {
-                    console.error('Error searching book by ID:', error);
-                    this.searchResults = [];
-                    this.searchPerformed = true;
-                });
-        },
-        searchByTitle() {
-            if (!this.searchTitle) {
-                alert('Please enter a title to search');
+            loading.value = true;
+            try {
+                await BookAPI.deleteBook(id);
+                books.value = books.value.filter(book => book.id !== id);
+                searchResults.value = searchResults.value.filter(book => book.id !== id);
+                showToast('success', 'Book deleted successfully!');
+            } catch (error) {
+                showToast('error', `Error deleting book: ${error.message}`);
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        const deleteBookByTitle = async (title) => {
+            if (!confirm(`Are you sure you want to delete the book titled "${title}"?`)) {
                 return;
             }
             
-            BookAPI.getBookByTitle(this.searchTitle)
-                .then(response => {
-                    this.searchResults = response.data ? [response.data] : [];
-                    this.searchPerformed = true;
-                })
-                .catch(error => {
-                    console.error('Error searching book by title:', error);
-                    this.searchResults = [];
-                    this.searchPerformed = true;
-                });
-        },
-        searchByAuthor() {
-            if (!this.searchAuthor) {
-                alert('Please enter an author to search');
+            loading.value = true;
+            try {
+                await BookAPI.deleteBookByTitle(title);
+                books.value = books.value.filter(book => book.title !== title);
+                searchResults.value = searchResults.value.filter(book => book.title !== title);
+                showToast('success', 'Book deleted successfully!');
+            } catch (error) {
+                showToast('error', `Error deleting book: ${error.message}`);
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        const searchById = async () => {
+            if (!searchId.value) {
+                showToast('error', 'Please enter an ID to search');
                 return;
             }
             
-            BookAPI.getBooksByAuthor(this.searchAuthor)
-                .then(response => {
-                    this.searchResults = response.data || [];
-                    this.searchPerformed = true;
-                })
-                .catch(error => {
-                    console.error('Error searching books by author:', error);
-                    this.searchResults = [];
-                    this.searchPerformed = true;
-                });
-        },
-        resetSearch() {
-            this.searchId = '';
-            this.searchTitle = '';
-            this.searchAuthor = '';
-            this.searchResults = [];
-            this.searchPerformed = false;
-        },
-        openEditModal(book) {
-            this.editingBook = { ...book };
-            this.originalTitle = book.title;
-            this.editByTitle = false;
-            this.showEditModal = true;
-        },
-        closeEditModal() {
-            this.showEditModal = false;
-        },
-        updateBook() {
-            if (!this.editingBook.title || !this.editingBook.author) {
-                alert('Please fill in all fields');
+            loading.value = true;
+            try {
+                const response = await BookAPI.getBookById(searchId.value);
+                searchResults.value = response.data ? [response.data] : [];
+                searchPerformed.value = true;
+            } catch (error) {
+                showToast('error', `Error searching book: ${error.message}`);
+                searchResults.value = [];
+                searchPerformed.value = true;
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        const searchByTitle = async () => {
+            if (!searchTitle.value) {
+                showToast('error', 'Please enter a title to search');
                 return;
             }
             
-            if (this.editByTitle) {
-                // Update by title
-                BookAPI.updateBookByTitle(this.originalTitle, this.editingBook)
-                    .then(response => {
-                        const index = this.books.findIndex(book => book.title === this.originalTitle);
-                        if (index !== -1) {
-                            this.books.splice(index, 1, response.data);
-                        }
-                        
-                        const searchIndex = this.searchResults.findIndex(book => book.title === this.originalTitle);
-                        if (searchIndex !== -1) {
-                            this.searchResults.splice(searchIndex, 1, response.data);
-                        }
-                        
-                        this.closeEditModal();
-                        alert('Book updated successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error updating book:', error);
-                        alert('Error updating book. Please try again.');
-                    });
+            loading.value = true;
+            try {
+                const response = await BookAPI.getBookByTitle(searchTitle.value);
+                searchResults.value = response.data ? [response.data] : [];
+                searchPerformed.value = true;
+            } catch (error) {
+                showToast('error', `Error searching book: ${error.message}`);
+                searchResults.value = [];
+                searchPerformed.value = true;
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        const searchByAuthor = async () => {
+            if (!searchAuthor.value) {
+                showToast('error', 'Please enter an author to search');
+                return;
+            }
+            
+            loading.value = true;
+            try {
+                const response = await BookAPI.getBooksByAuthor(searchAuthor.value);
+                searchResults.value = response.data || [];
+                searchPerformed.value = true;
+            } catch (error) {
+                showToast('error', `Error searching books: ${error.message}`);
+                searchResults.value = [];
+                searchPerformed.value = true;
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        const resetSearch = () => {
+            searchId.value = '';
+            searchTitle.value = '';
+            searchAuthor.value = '';
+            searchResults.value = [];
+            searchPerformed.value = false;
+        };
+        
+        const openEditModal = (book) => {
+            Object.assign(editingBook, book);
+            originalTitle.value = book.title;
+            editByTitle.value = false;
+            showEditModal.value = true;
+        };
+        
+        const closeEditModal = () => {
+            showEditModal.value = false;
+        };
+        
+        const updateBook = async () => {
+            if (!editingBook.title || !editingBook.author) {
+                showToast('error', 'Please fill in all fields');
+                return;
+            }
+            
+            loading.value = true;
+            try {
+                let response;
+                
+                if (editByTitle.value) {
+                    // Update by title
+                    response = await BookAPI.updateBookByTitle(originalTitle.value, editingBook);
+                } else {
+                    // Update by ID
+                    response = await BookAPI.updateBook(editingBook.id, editingBook);
+                }
+                
+                // Update local data
+                const updatedBook = response.data;
+                
+                // Update in books array
+                const bookIndex = books.value.findIndex(book => book.id === updatedBook.id);
+                if (bookIndex !== -1) {
+                    books.value[bookIndex] = updatedBook;
+                }
+                
+                // Update in search results if present
+                const searchIndex = searchResults.value.findIndex(book => book.id === updatedBook.id);
+                if (searchIndex !== -1) {
+                    searchResults.value[searchIndex] = updatedBook;
+                }
+                
+                closeEditModal();
+                showToast('success', 'Book updated successfully!');
+            } catch (error) {
+                showToast('error', `Error updating book: ${error.message}`);
+            } finally {
+                loading.value = false;
+            }
+        };
+        
+        // Toast notification system
+        const showToast = (type, message) => {
+            const id = Date.now();
+            toasts.value.push({ id, type, message });
+            
+            // Auto-remove toast after 3 seconds
+            setTimeout(() => {
+                toasts.value = toasts.value.filter(toast => toast.id !== id);
+            }, 3000);
+        };
+        
+        // Keyboard shortcuts
+        const setupKeyboardShortcuts = () => {
+            document.addEventListener('keydown', (e) => {
+                // ESC key closes modal
+                if (e.key === 'Escape' && showEditModal.value) {
+                    closeEditModal();
+                }
+                
+                // Ctrl+A to add new book
+                if (e.ctrlKey && e.key === 'a' && !showEditModal.value) {
+                    e.preventDefault();
+                    setActiveTab('add');
+                }
+                
+                // Ctrl+S to search
+                if (e.ctrlKey && e.key === 's' && !showEditModal.value) {
+                    e.preventDefault();
+                    setActiveTab('search');
+                }
+            });
+        };
+        
+        // Theme toggle function
+        const toggleTheme = () => {
+            isDarkMode.value = !isDarkMode.value;
+            localStorage.setItem('darkMode', isDarkMode.value);
+            applyTheme();
+        };
+        
+        // Apply theme based on current setting
+        const applyTheme = () => {
+            // Add transition class
+            document.body.classList.add('theme-transition');
+            
+            // Apply theme
+            if (isDarkMode.value) {
+                document.documentElement.setAttribute('data-theme', 'dark');
             } else {
-                // Update by ID
-                BookAPI.updateBook(this.editingBook.id, this.editingBook)
-                    .then(response => {
-                        const index = this.books.findIndex(book => book.id === this.editingBook.id);
-                        if (index !== -1) {
-                            this.books.splice(index, 1, response.data);
-                        }
-                        
-                        const searchIndex = this.searchResults.findIndex(book => book.id === this.editingBook.id);
-                        if (searchIndex !== -1) {
-                            this.searchResults.splice(searchIndex, 1, response.data);
-                        }
-                        
-                        this.closeEditModal();
-                        alert('Book updated successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error updating book:', error);
-                        alert('Error updating book. Please try again.');
-                    });
+                document.documentElement.removeAttribute('data-theme');
             }
-        }
+            
+            // Remove transition class after transition completes
+            setTimeout(() => {
+                document.body.classList.remove('theme-transition');
+            }, 300);
+        };
+        
+        // Scroll to top function
+        const scrollToTop = () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        };
+        
+        // Export books to CSV
+        const exportBooks = () => {
+            if (!books.value.length) {
+                showToast('error', 'No books to export');
+                return;
+            }
+            
+            // Create CSV content
+            const headers = ['ID', 'Title', 'Author'];
+            const csvContent = [
+                headers.join(','),
+                ...displayedBooks.value.map(book => 
+                    [book.id, `"${book.title.replace(/"/g, '""')}"`, `"${book.author.replace(/"/g, '""')}"`].join(',')
+                )
+            ].join('\n');
+            
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'books.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('success', 'Books exported successfully');
+        };
+        
+        // Print books list
+        const printBooks = () => {
+            if (!books.value.length) {
+                showToast('error', 'No books to print');
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            const booksList = displayedBooks.value.map(book => 
+                `<div style="margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #eee;">
+                    <h3>${book.title}</h3>
+                    <p><strong>Author:</strong> ${book.author}</p>
+                    <p><strong>ID:</strong> ${book.id}</p>
+                </div>`
+            ).join('');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Books List</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; margin-bottom: 30px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Books List</h1>
+                    ${booksList}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        };
+        
+        // Sort books
+        const sortBooks = () => {
+            // The actual sorting is handled by the computed property
+            showToast('info', `Sorted by ${sortBy.value}`);
+        };
+        
+        // Handle scroll events for scroll-to-top button
+        const handleScroll = () => {
+            showScrollTop.value = window.scrollY > 300;
+        };
+        
+        // Lifecycle hooks
+        onMounted(() => {
+            fetchBooks();
+            setupKeyboardShortcuts();
+            applyTheme();
+            
+            // Add scroll event listener
+            window.addEventListener('scroll', handleScroll);
+        });
+        
+        return {
+            // State
+            books,
+            newBook,
+            activeTab,
+            searchId,
+            searchTitle,
+            searchAuthor,
+            searchResults,
+            searchPerformed,
+            showEditModal,
+            editingBook,
+            editByTitle,
+            originalTitle,
+            loading,
+            toasts,
+            isDarkMode,
+            selectedAuthor,
+            uniqueAuthors,
+            displayedBooks,
+            
+            // Computed
+            hasBooks,
+            hasSearchResults,
+            
+            // Methods
+            setActiveTab,
+            fetchBooks,
+            addBook,
+            deleteBook,
+            deleteBookByTitle,
+            searchById,
+            searchByTitle,
+            searchByAuthor,
+            resetSearch,
+            openEditModal,
+            closeEditModal,
+            updateBook,
+            showToast,
+            toggleTheme,
+            scrollToTop,
+            exportBooks,
+            printBooks,
+            sortBooks,
+            showScrollTop,
+            sortBy,
+            filterByAuthor,
+            clearAuthorFilter
+        };
     }
 }).mount('#app');

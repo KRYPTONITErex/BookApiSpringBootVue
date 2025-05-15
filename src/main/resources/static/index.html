@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOOK API</title>
+    <title>Book Management System</title>
     <!-- Vue.js CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Axios for HTTP requests -->
@@ -19,10 +19,40 @@
 </head>
 <body>
     <div id="app">
-        <h1>Book Management System</h1>
+        <!-- Sidebar with Author Tags -->
+        <div class="sidebar">
+            <div class="tag-cloud">
+                <h3>Authors</h3>
+                <div v-if="loading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div v-else>
+                    <span 
+                        v-for="author in uniqueAuthors" 
+                        :key="author" 
+                        class="author-tag" 
+                        :class="{ active: selectedAuthor === author }"
+                        @click="filterByAuthor(author)">
+                        {{ author }}
+                    </span>
+                    <span v-if="selectedAuthor" class="author-tag" @click="clearAuthorFilter">
+                        <i class="fas fa-times"></i> Clear
+                    </span>
+                </div>
+            </div>
+        </div>
         
-        <!-- Tabs -->
-        <div class="tabs">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header-container">
+                <h1>Book Management System</h1>
+                <button class="theme-toggle" @click="toggleTheme">
+                    <i :class="isDarkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+                </button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="tabs">
             <div class="tab" :class="{ active: activeTab === 'all' }" @click="setActiveTab('all')">
                 <i class="fas fa-book"></i> All Books
             </div>
@@ -34,8 +64,13 @@
             </div>
         </div>
         
+        <!-- Loading Indicator -->
+        <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+        </div>
+        
         <!-- Add Book Form -->
-        <div v-if="activeTab === 'add'">
+        <div v-if="activeTab === 'add' && !loading">
             <h2>Add New Book</h2>
             <div class="form-group">
                 <label for="title">Title:</label>
@@ -51,7 +86,7 @@
         </div>
         
         <!-- Search Section -->
-        <div v-if="activeTab === 'search'">
+        <div v-if="activeTab === 'search' && !loading">
             <h2>Search Books</h2>
             
             <!-- Search by ID -->
@@ -83,7 +118,7 @@
             </button>
             
             <!-- Search Results -->
-            <div v-if="searchResults.length > 0" class="book-list">
+            <div v-if="hasSearchResults" class="book-list">
                 <div class="book" v-for="book in searchResults" :key="book.id">
                     <div class="action-buttons">
                         <button class="edit-btn" @click="openEditModal(book)">
@@ -105,14 +140,38 @@
         </div>
         
         <!-- Book List -->
-        <div v-if="activeTab === 'all'">
-            <h2>All Books</h2>
-            <div v-if="books.length === 0" class="empty-state">
+        <div v-if="activeTab === 'all' && !loading">
+            <h2>All Books <span class="book-count" v-if="hasBooks">{{ displayedBooks.length }}</span></h2>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="action-btn" @click="setActiveTab('add')">
+                    <i class="fas fa-plus"></i> Add New
+                </button>
+                <button class="action-btn" @click="exportBooks">
+                    <i class="fas fa-file-export"></i> Export
+                </button>
+                <button class="action-btn" @click="printBooks">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+            
+            <!-- Sorting Controls -->
+            <div class="sort-controls" v-if="hasBooks">
+                <label for="sort-by">Sort by:</label>
+                <select id="sort-by" v-model="sortBy" @change="sortBooks">
+                    <option value="title">Title</option>
+                    <option value="author">Author</option>
+                    <option value="id">ID</option>
+                </select>
+            </div>
+            
+            <div v-if="!hasBooks" class="empty-state">
                 <i class="fas fa-books"></i>
                 <p>No books available</p>
             </div>
             <div v-else class="book-list">
-                <div class="book" v-for="book in books" :key="book.id">
+                <div class="book" v-for="book in displayedBooks" :key="book.id">
                     <div class="action-buttons">
                         <button class="edit-btn" @click="openEditModal(book)">
                             <i class="fas fa-edit"></i> Edit
@@ -148,6 +207,22 @@
                 </button>
             </div>
         </div>
+        
+        <!-- Toast Notifications -->
+        <div class="toast-container">
+            <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
+                <i v-if="toast.type === 'success'" class="fas fa-check-circle"></i>
+                <i v-else-if="toast.type === 'error'" class="fas fa-exclamation-circle"></i>
+                <i v-else class="fas fa-info-circle"></i>
+                {{ toast.message }}
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <!-- Scroll to top button -->
+    <div class="scroll-top-btn" :class="{ visible: showScrollTop }" @click="scrollToTop">
+        <i class="fas fa-arrow-up"></i>
     </div>
 
     <!-- API Service -->
