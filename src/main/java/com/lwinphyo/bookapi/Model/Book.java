@@ -14,13 +14,14 @@ public class Book {
 
     private String title;
     private String author;
+    private String link;
 
     public Book() {}
 
-
-    public Book(String title, String author) {
+    public Book(String title, String author, String link) {
         this.title = title;
         this.author = author;
+        this.link = link;
     }
 
 
@@ -48,4 +49,11 @@ public class Book {
         this.author = author;
     }
 
+    public String getLink() {
+        return link;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
+    }
 }

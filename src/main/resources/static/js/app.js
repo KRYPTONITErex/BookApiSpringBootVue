@@ -6,7 +6,8 @@ createApp({
         const books = ref([]);
         const newBook = reactive({
             title: '',
-            author: ''
+            author: '',
+            link: ''
         });
         const activeTab = ref('all');
         const searchId = ref('');
@@ -18,7 +19,8 @@ createApp({
         const editingBook = reactive({
             id: null,
             title: '',
-            author: ''
+            author: '',
+            link: ''
         });
         const editByTitle = ref(false);
         const originalTitle = ref('');
@@ -104,7 +106,7 @@ createApp({
         
         const addBook = async () => {
             if (!newBook.title || !newBook.author) {
-                showToast('error', 'Please fill in all fields');
+                showToast('error', 'Please fill in all required fields');
                 return;
             }
             
@@ -114,6 +116,7 @@ createApp({
                 books.value.push(response.data);
                 newBook.title = '';
                 newBook.author = '';
+                newBook.link = '';
                 showToast('success', 'Book added successfully!');
                 setActiveTab('all');
             } catch (error) {
@@ -240,7 +243,7 @@ createApp({
         
         const updateBook = async () => {
             if (!editingBook.title || !editingBook.author) {
-                showToast('error', 'Please fill in all fields');
+                showToast('error', 'Please fill in all required fields');
                 return;
             }
             
@@ -354,11 +357,11 @@ createApp({
             }
             
             // Create CSV content
-            const headers = ['ID', 'Title', 'Author'];
+            const headers = ['ID', 'Title', 'Author', 'Link'];
             const csvContent = [
                 headers.join(','),
                 ...displayedBooks.value.map(book => 
-                    [book.id, `"${book.title.replace(/"/g, '""')}"`, `"${book.author.replace(/"/g, '""')}"`].join(',')
+                    [book.id, `"${book.title.replace(/"/g, '""')}"`, `"${book.author.replace(/"/g, '""')}"`, `"${book.link ? book.link.replace(/"/g, '""') : ''}"`].join(',')
                 )
             ].join('\n');
             
@@ -389,6 +392,7 @@ createApp({
                     <h3>${book.title}</h3>
                     <p><strong>Author:</strong> ${book.author}</p>
                     <p><strong>ID:</strong> ${book.id}</p>
+                    ${book.link ? `<p><strong>Link:</strong> <a href="${book.link}" target="_blank">${book.link}</a></p>` : ''}
                 </div>`
             ).join('');
             
@@ -422,10 +426,74 @@ createApp({
             showToast('info', `Sorted by ${sortBy.value}`);
         };
         
-        // Handle scroll events for scroll-to-top button
+        // Handle scroll events for scroll-to-top button, sidebar, header and tabs collapse
         const handleScroll = () => {
             showScrollTop.value = window.scrollY > 300;
+            
+            // Get the elements
+            const sidebar = document.querySelector('.sidebar');
+            const header = document.querySelector('.header-container');
+            const tabs = document.querySelector('.tabs');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Determine scroll direction
+            const scrollingDown = window.scrollY > lastScrollPosition;
+            
+            // Handle collapse behavior
+            if (window.scrollY > 100) {
+                if (scrollingDown) {
+                    // Scrolling down - hide elements
+                    sidebar?.classList.add('collapsed');
+                    sidebar?.classList.remove('visible');
+                    
+                    if (header) {
+                        header.classList.add('collapsed');
+                        header.classList.remove('visible');
+                    }
+                } else {
+                    // Scrolling up - show elements
+                    sidebar?.classList.remove('collapsed');
+                    sidebar?.classList.add('visible');
+                    
+                    if (header) {
+                        header.classList.remove('collapsed');
+                        header.classList.add('visible');
+                    }
+                }
+                
+                // Make tabs sticky when scrolling down
+                if (tabs) {
+                    tabs.classList.add('sticky');
+                    
+                    // Adjust top position based on whether header is visible
+                    if (header && !header.classList.contains('collapsed')) {
+                        tabs.style.top = header.offsetHeight + 'px';
+                    } else {
+                        tabs.style.top = '0';
+                    }
+                }
+            } else {
+                // At the top - always show elements and remove sticky tabs
+                sidebar?.classList.remove('collapsed');
+                sidebar?.classList.remove('visible');
+                
+                if (header) {
+                    header.classList.remove('collapsed');
+                    header.classList.remove('visible');
+                }
+                
+                if (tabs) {
+                    tabs.classList.remove('sticky');
+                    tabs.style.top = '';
+                }
+            }
+            
+            // Update last scroll position
+            lastScrollPosition = window.scrollY;
         };
+        
+        // Track last scroll position to determine scroll direction
+        let lastScrollPosition = 0;
         
         // Lifecycle hooks
         onMounted(() => {
@@ -433,8 +501,32 @@ createApp({
             setupKeyboardShortcuts();
             applyTheme();
             
-            // Add scroll event listener
-            window.addEventListener('scroll', handleScroll);
+            // Add scroll event listener with throttling for better performance
+            let ticking = false;
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        handleScroll();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+            
+            // Initialize UI elements state
+            const sidebar = document.querySelector('.sidebar');
+            const header = document.querySelector('.header-container');
+            
+            if (sidebar) {
+                sidebar.classList.add('visible');
+            }
+            
+            if (header) {
+                header.classList.add('visible');
+            }
+            
+            // Trigger initial scroll handler to set up UI
+            handleScroll();
         });
         
         return {
@@ -488,3 +580,46 @@ createApp({
         };
     }
 }).mount('#app');
+// Scroll handling for collapsible elements
+let lastScrollY = 0;
+
+// Add scroll event listener with throttling
+window.addEventListener('scroll', () => {
+  // Simple throttling
+  if (!window.scrollThrottle) {
+    window.scrollThrottle = true;
+    
+    setTimeout(() => {
+      handleScroll();
+      window.scrollThrottle = false;
+    }, 100);
+  }
+});
+
+// Handle scroll events
+function handleScroll() {
+  const currentScrollY = window.scrollY;
+  const scrollingDown = currentScrollY > lastScrollY;
+  const header = document.querySelector('.header-container');
+  const sidebar = document.querySelector('.sidebar');
+  const tabs = document.querySelector('.tabs');
+  
+  // Apply classes based on scroll direction
+  if (currentScrollY > 100) {
+    if (scrollingDown) {
+      header?.classList.add('collapsed');
+      sidebar?.classList.add('collapsed');
+      if (tabs) tabs.style.top = '0';
+    } else {
+      header?.classList.remove('collapsed');
+      sidebar?.classList.remove('collapsed');
+      if (tabs && header) tabs.style.top = header.offsetHeight + 'px';
+    }
+  } else {
+    header?.classList.remove('collapsed');
+    sidebar?.classList.remove('collapsed');
+  }
+  
+  // Update last scroll position
+  lastScrollY = currentScrollY;
+}

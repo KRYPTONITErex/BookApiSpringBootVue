@@ -26,7 +26,7 @@
                 <div v-if="loading" class="loading">
                     <div class="spinner"></div>
                 </div>
-                <div v-else>
+                <div v-else class="tag-container">
                     <span 
                         v-for="author in uniqueAuthors" 
                         :key="author" 
@@ -80,6 +80,10 @@
                 <label for="author">Author:</label>
                 <input type="text" id="author" v-model="newBook.author" required placeholder="Enter author name">
             </div>
+            <div class="form-group">
+                <label for="link">Link:</label>
+                <input type="url" id="link" v-model="newBook.link" placeholder="Enter book link (optional)">
+            </div>
             <button class="add-btn" @click="addBook">
                 <i class="fas fa-plus"></i> Add Book
             </button>
@@ -131,6 +135,7 @@
                     <h3>{{ book.title }}</h3>
                     <p><strong><i class="fas fa-user"></i> Author:</strong> {{ book.author }}</p>
                     <p><strong><i class="fas fa-hashtag"></i> ID:</strong> {{ book.id }}</p>
+                    <p v-if="book.link"><strong><i class="fas fa-link"></i> Link:</strong> <a :href="book.link" target="_blank" class="book-link">{{ book.link }}</a></p>
                 </div>
             </div>
             <div v-else-if="searchPerformed" class="empty-state">
@@ -183,6 +188,7 @@
                     <h3>{{ book.title }}</h3>
                     <p><strong><i class="fas fa-user"></i> Author:</strong> {{ book.author }}</p>
                     <p><strong><i class="fas fa-hashtag"></i> ID:</strong> {{ book.id }}</p>
+                    <p v-if="book.link"><strong><i class="fas fa-link"></i> Link:</strong> <a :href="book.link" target="_blank" class="book-link">{{ book.link }}</a></p>
                 </div>
             </div>
         </div>
@@ -201,6 +207,10 @@
                 <div class="form-group">
                     <label for="edit-author">Author:</label>
                     <input type="text" id="edit-author" v-model="editingBook.author" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-link">Link:</label>
+                    <input type="url" id="edit-link" v-model="editingBook.link" placeholder="Enter book link (optional)">
                 </div>
                 <button class="add-btn" @click="updateBook">
                     <i class="fas fa-save"></i> Update Book
