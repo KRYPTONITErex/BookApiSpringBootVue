@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/clean-styles.css">
 </head>
 <body>
     <div id="app">
@@ -35,7 +36,7 @@
                         @click="filterByAuthor(author)">
                         {{ author }}
                     </span>
-                    <span v-if="selectedAuthor" class="author-tag" @click="clearAuthorFilter">
+                    <span v-if="selectedAuthor" class="author-tag clear-tag" @click="clearAuthorFilter">
                         <i class="fas fa-times"></i> Clear
                     </span>
                 </div>
@@ -125,11 +126,11 @@
             <div v-if="hasSearchResults" class="book-list">
                 <div class="book" v-for="book in searchResults" :key="book.id">
                     <div class="action-buttons">
-                        <button class="edit-btn" @click="openEditModal(book)">
-                            <i class="fas fa-edit"></i> Edit
+                        <button class="edit-btn" @click="openEditModal(book)" title="Edit">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button class="delete-btn" @click="deleteBook(book.id)">
-                            <i class="fas fa-trash"></i> Delete
+                        <button class="delete-btn" @click="deleteBook(book.id)" title="Delete">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                     <h3>{{ book.title }}</h3>
@@ -178,11 +179,11 @@
             <div v-else class="book-list">
                 <div class="book" v-for="book in displayedBooks" :key="book.id">
                     <div class="action-buttons">
-                        <button class="edit-btn" @click="openEditModal(book)">
-                            <i class="fas fa-edit"></i> Edit
+                        <button class="edit-btn" @click="openEditModal(book)" title="Edit">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button class="delete-btn" @click="deleteBook(book.id)">
-                            <i class="fas fa-trash"></i> Delete
+                        <button class="delete-btn" @click="deleteBook(book.id)" title="Delete">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                     <h3>{{ book.title }}</h3>
@@ -239,5 +240,8 @@
     <script src="js/api.js"></script>
     <!-- Main Application -->
     <script src="js/app.js"></script>
+    <!-- UI Enhancements -->
+    <script src="js/ui-enhancer.js"></script>
+    <script src="js/position-fix.js"></script>
 </body>
 </html>

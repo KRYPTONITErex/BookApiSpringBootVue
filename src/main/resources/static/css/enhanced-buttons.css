@@ -1,0 +1,120 @@
+/* Enhanced button styles */
+
+/* Edit and delete buttons */
+.edit-btn, .delete-btn {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  opacity: 0.8;
+  transform: scale(0.9);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.edit-btn {
+  background-color: var(--info-color);
+}
+
+.edit-btn:hover {
+  background-color: #0e7490;
+  transform: translateY(-2px) scale(1.1) rotate(5deg);
+  opacity: 1;
+  box-shadow: 0 5px 15px rgba(17, 138, 178, 0.4);
+}
+
+.delete-btn {
+  background-color: var(--danger-color);
+}
+
+.delete-btn:hover {
+  background-color: #d64161;
+  transform: translateY(-2px) scale(1.1) rotate(-5deg);
+  opacity: 1;
+  box-shadow: 0 5px 15px rgba(239, 71, 111, 0.4);
+}
+
+.edit-btn i, .delete-btn i {
+  margin-right: 0 !important;
+}
+
+/* Link button styles */
+.book-link-container {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+
+.link-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #3a86ff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: visible;
+}
+
+.link-btn:hover {
+  background: #2563eb;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  width: 110px;
+  justify-content: flex-start;
+  padding-left: 10px;
+}
+
+.link-btn i {
+  font-size: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.link-text {
+  position: absolute;
+  left: 32px;
+  color: white;
+  font-size: 12px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.link-btn:hover .link-text {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Action buttons container */
+.action-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 0;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 5;
+  top: auto;
+  right: auto;
+}
+
+/* Make book cards relative positioned for absolute positioning of buttons */
+.book {
+  position: relative !important;
+  padding-bottom: 50px !important;
+}

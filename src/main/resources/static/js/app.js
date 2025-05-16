@@ -101,7 +101,16 @@ createApp({
         
         // Clear author filter
         const clearAuthorFilter = () => {
-            selectedAuthor.value = '';
+            // Add animation effect when clearing
+            const clearBtn = document.querySelector('.clear-tag');
+            if (clearBtn) {
+                clearBtn.classList.add('clearing');
+                setTimeout(() => {
+                    selectedAuthor.value = '';
+                }, 300);
+            } else {
+                selectedAuthor.value = '';
+            }
         };
         
         const addBook = async () => {
