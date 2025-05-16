@@ -1,20 +1,21 @@
 package com.lwinphyo.bookapi.Model;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+// import jakarta.persistence.GeneratedValue;
+// import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
 public class Book {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // We're manually managing IDs now
     private Long id;
 
     private String title;
     private String author;
     private String link;
+    private Long updatedAt;
 
     public Book() {}
 
@@ -22,6 +23,7 @@ public class Book {
         this.title = title;
         this.author = author;
         this.link = link;
+        this.updatedAt = System.currentTimeMillis();
     }
 
 
@@ -55,5 +57,13 @@ public class Book {
 
     public void setLink(String link) {
         this.link = link;
+    }
+    
+    public Long getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(Long updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -260,6 +260,7 @@ h3 {
   background-color: var(--card-bg);
   border-radius: var(--border-radius);
   padding: 15px;
+  padding-bottom: 50px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   transition: var(--transition);
   position: relative;
@@ -410,13 +411,15 @@ button i {
 
 .action-buttons {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 10px;
+  left: 10px;
   z-index: 5;
+  top: auto;
+  right: auto;
 }
 
 .search-container {
@@ -805,6 +808,60 @@ body {
   border: 1px solid var(--border-color);
   background-color: var(--input-bg);
   color: var(--text-color);
+  margin-right: 10px;
+}
+
+.sort-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.sort-toggle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sort-toggle:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.sort-toggle:hover::before {
+  opacity: 1;
+}
+
+.sort-toggle:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.sort-toggle i {
+  margin: 0;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.sort-toggle:hover i {
+  transform: scale(1.2);
 }
 
 /* Book link styles */
@@ -830,45 +887,52 @@ body {
 }
 
 .link-btn {
-  /* border radius round 0 10px 0 10px */
-  border-radius: 0 10px 0 10px;
-  border: none;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #3a86ff, #4cc9f0);
+  border-radius: 3px;
+  background: #607d8b;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 5px rgba(58, 134, 255, 0.3);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   position: relative;
   overflow: hidden;
 }
 
-.link-btn:hover {
-  border-radius: 0 10px 0 10px;
-  transform: translateY(-2px) scale(1.1);
-  box-shadow: 0 5px 15px rgba(58, 134, 255, 0.5);
-}
-
-.link-text {
+.link-btn::before {
+  content: 'Go to Link';
   position: absolute;
-  right: 32px;
-  background: linear-gradient(135deg, #3a86ff, #4cc9f0);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
+  left: 28px;
   opacity: 0;
-  transform: translateX(10px);
-  transition: all 0.3s ease;
   white-space: nowrap;
-  pointer-events: none;
+  transform: translateX(20px);
+  transition: all 0.3s ease;
+  font-size: 14px;
+  padding-left: 5px;
 }
 
-.link-btn:hover .link-text {
+.link-btn:hover {
+  transform: translateY(-2px);
+  width: 90px;
+  height: 28px;
+  border-radius: 3px;
+  background: #546e7a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.link-btn:hover::before {
   opacity: 1;
   transform: translateX(0);
+}
+
+.link-btn i {
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.link-btn:hover i {
+  transform: translateX(-10px);
 }

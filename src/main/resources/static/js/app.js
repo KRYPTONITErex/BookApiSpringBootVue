@@ -31,6 +31,7 @@ createApp({
         const filteredBooks = ref([]);
         const showScrollTop = ref(false);
         const sortBy = ref('title');
+        const sortDirection = ref('asc');
         
         // Computed properties
         const hasBooks = computed(() => books.value.length > 0);
@@ -53,14 +54,24 @@ createApp({
             
             // Apply sorting
             result = [...result].sort((a, b) => {
+                let comparison = 0;
+                
                 if (sortBy.value === 'title') {
-                    return a.title.localeCompare(b.title);
+                    comparison = a.title.localeCompare(b.title);
                 } else if (sortBy.value === 'author') {
-                    return a.author.localeCompare(b.author);
+                    comparison = a.author.localeCompare(b.author);
                 } else if (sortBy.value === 'id') {
-                    return a.id - b.id;
+                    comparison = a.id - b.id;
+                } else if (sortBy.value === 'updatedAt') {
+                    // Sort by updatedAt timestamp
+                    // Default to 0 if updatedAt is not available
+                    const aTime = a.updatedAt || 0;
+                    const bTime = b.updatedAt || 0;
+                    comparison = aTime - bTime;
                 }
-                return 0;
+                
+                // Apply sort direction
+                return sortDirection.value === 'asc' ? comparison : -comparison;
             });
             
             return result;
@@ -121,6 +132,7 @@ createApp({
             
             loading.value = true;
             try {
+                // We don't need to set the ID manually - the backend will handle it
                 const response = await BookAPI.addBook(newBook);
                 books.value.push(response.data);
                 newBook.title = '';
@@ -432,7 +444,13 @@ createApp({
         // Sort books
         const sortBooks = () => {
             // The actual sorting is handled by the computed property
-            showToast('info', `Sorted by ${sortBy.value}`);
+            showToast('info', `Sorted by ${sortBy.value} (${sortDirection.value === 'asc' ? 'ascending' : 'descending'})`);
+        };
+        
+        // Toggle sort direction
+        const toggleSortDirection = () => {
+            sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+            sortBooks();
         };
         
         // Handle scroll events for scroll-to-top button, sidebar, header and tabs collapse
@@ -558,6 +576,7 @@ createApp({
             selectedAuthor,
             uniqueAuthors,
             displayedBooks,
+            sortDirection,
             
             // Computed
             hasBooks,
@@ -585,7 +604,8 @@ createApp({
             showScrollTop,
             sortBy,
             filterByAuthor,
-            clearAuthorFilter
+            clearAuthorFilter,
+            toggleSortDirection
         };
     }
 }).mount('#app');

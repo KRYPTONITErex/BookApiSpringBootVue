@@ -41,8 +41,16 @@ public class BookService {
         return bookRepository.findByTitle(title);
     }
 
+    @Autowired
+    private IdGeneratorService idGeneratorService;
+    
     // Create one
     public Book addBook(Book bookDTO) {
+        // Set the next available ID
+        Long nextId = idGeneratorService.getNextAvailableId();
+        bookDTO.setId(nextId);
+        // Set current timestamp
+        bookDTO.setUpdatedAt(System.currentTimeMillis());
         return bookRepository.save(bookDTO);
     }
 
@@ -57,6 +65,9 @@ public class BookService {
         if (book != null) {
             book.setTitle(bookDetail.getTitle());
             book.setAuthor(bookDetail.getAuthor());
+            book.setLink(bookDetail.getLink());
+            // Update timestamp
+            book.setUpdatedAt(System.currentTimeMillis());
             return bookRepository.save(book);
         } else {
             return null;
@@ -69,6 +80,9 @@ public class BookService {
         if (book != null) {
             book.setAuthor(bookDetail.getAuthor());
             book.setTitle(bookDetail.getTitle());
+            book.setLink(bookDetail.getLink());
+            // Update timestamp
+            book.setUpdatedAt(System.currentTimeMillis());
             return bookRepository.save(book);
         } else {
             return null;
